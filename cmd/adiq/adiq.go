@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/ronymmoura/adiq-recurrence-check/internal/adiq"
@@ -37,11 +36,8 @@ func Run() {
 		log.Fatal("Error getting subscriptions:", err)
 	}
 
-	for _, assinatura := range assinaturas {
-		fmt.Printf("%v\n", assinatura)
-	}
-
 	wb := xlsx.CreateFile()
 	wb.AddAdiqBillings(billings)
+	wb.AddAssinaturas(assinaturas)
 	wb.SaveFile("adiq.xlsx")
 }

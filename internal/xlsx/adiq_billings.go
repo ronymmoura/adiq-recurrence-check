@@ -7,19 +7,14 @@ import (
 	"github.com/tealeg/xlsx/v3"
 )
 
-type Header struct {
-	Name  string
-	Width float64
-}
-
-func (wb *Sheet) AddAdiqBillings(billings []adiq.Billing) error {
+func (wb *Workbook) AddAdiqBillings(billings []adiq.Billing) error {
 	sheetName := "API Billings"
 	sh, err := wb.AddSheet(sheetName)
 	if err != nil {
 		return err
 	}
 
-	headers := []Header{
+	headers := []ColHeader{
 		{Name: "Status", Width: 20.0},
 		{Name: "CPF", Width: 15.0},
 		{Name: "Plano", Width: 40.0},
@@ -98,7 +93,7 @@ func (wb *Sheet) AddAdiqBillings(billings []adiq.Billing) error {
 		cell.SetDateTime(billing.Subscription.CreatedDate.Time)
 
 		cell = row.AddCell()
-		cell.SetString(fmt.Sprintf("%.2f", billing.Amount))
+		cell.SetNumeric(fmt.Sprintf("%.2f", billing.Amount))
 
 		cell = row.AddCell()
 		cell.SetDateTime(billing.CreatedDate.Time)

@@ -4,19 +4,19 @@ import (
 	"github.com/tealeg/xlsx/v3"
 )
 
-type Sheet struct {
+type Workbook struct {
 	*xlsx.File
 }
 
-func CreateFile() *Sheet {
+func CreateFile() *Workbook {
 	wb := xlsx.NewFile()
 
-	sheet := &Sheet{wb}
+	book := &Workbook{wb}
 
-	return sheet
+	return book
 }
 
-func (wb *Sheet) SaveFile(path string) error {
+func (wb *Workbook) SaveFile(path string) error {
 	err := wb.Save(path)
 
 	return err
