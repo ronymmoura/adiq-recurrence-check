@@ -3,7 +3,10 @@ package adiq
 import (
 	"encoding/json"
 	"io"
+	"math"
 	"net/http"
+	"slices"
+	"strconv"
 
 	"github.com/ronymmoura/adiq-recurrence-check/internal/util"
 )
@@ -56,10 +59,37 @@ type Plan struct {
 	CreatedDate   util.TimeWithoutTZ `json:"createdDate"`
 }
 
-const billingUrl = "https://recorrencia.adiq.io/v1/recurrence/billing"
+const billingUrl = "https://recorrencia.adiq.io/v1/recurrence/billing?limit=50"
 
-func GetBilling(accessToken string) (billings GetBillingResponse, err error) {
-	req, err := http.NewRequest("GET", billingUrl, nil)
+func GetBilling(accessToken string) (result []Billing, err error) {
+	billings, err := getBillings(accessToken, 1)
+	if err != nil {
+		return
+	}
+
+	totalPages := int(math.Ceil(float64(billings.Total) / float64(billings.Limit)))
+
+	//fmt.Printf("\nTotal items: %d\nLimit: %d\nTotal Pages: %d\n\n", billings.Total, billings.Limit, totalPages)
+
+	result = billings.Items
+
+	page := billings.Page + 1
+
+	for page <= totalPages {
+		pageBillings, err2 := getBillings(accessToken, page)
+		if err2 != nil {
+			break
+		}
+
+		result = slices.Concat(result, pageBillings.Items)
+		page++
+	}
+
+	return
+}
+
+func getBillings(accessToken string, page int) (billings GetBillingResponse, err error) {
+	req, err := http.NewRequest("GET", billingUrl+"&page="+strconv.Itoa(page), nil)
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Content-Type", "application/json")
 
