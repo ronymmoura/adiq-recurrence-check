@@ -42,6 +42,6 @@ func Run() {
 	}
 
 	wb := xlsx.CreateFile()
-	xlsx.AddAdiqBillings(wb, billings)
-	xlsx.SaveFile("adiq.xlsx", wb)
+	wb.AddAdiqBillings(billings)
+	wb.SaveFile("adiq.xlsx")
 }
