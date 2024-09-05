@@ -39,5 +39,6 @@ func Run() {
 	wb := xlsx.CreateFile()
 	wb.AddAdiqBillings(billings)
 	wb.AddAssinaturas(assinaturas)
+	wb.Cross(billings, assinaturas)
 	wb.SaveFile("adiq.xlsx")
 }

@@ -52,7 +52,7 @@ func (wb *Workbook) Cross(billings []adiq.Billing, assinaturas []sql.Assinatura)
 
 	for _, billing := range billings {
 		for idx, assinatura := range assinaturas {
-			if billing.Subscription.Id == assinatura.IdAssinat.String {
+			if assinatura.IdAssinat != nil && billing.Subscription.Id == assinatura.IdAssinat.String {
 
 				var pagamento *sql.Pagamento
 				for idx, pag := range assinatura.Pagamentos {
@@ -89,7 +89,7 @@ func (wb *Workbook) Cross(billings []adiq.Billing, assinaturas []sql.Assinatura)
 				cell.SetString(billing.Subscription.Status)
 
 				cell = row.AddCell()
-				if assinatura.IdAssinat.Valid {
+				if assinatura.IdAssinat != nil {
 					cell.SetString("Existente")
 				} else {
 					cell.SetString("Inexistente")
@@ -127,7 +127,11 @@ func (wb *Workbook) Cross(billings []adiq.Billing, assinaturas []sql.Assinatura)
 				cell.SetDateTime(billing.CreatedDate.Time)
 
 				cell = row.AddCell()
-				cell.SetDateTime(pagamento.DataPagamento)
+				if pagamento != nil {
+					cell.SetDateTime(pagamento.DataPagamento)
+				} else {
+					cell.SetString("Inexistente")
+				}
 			}
 
 			if idx == len(assinaturas)-1 {
