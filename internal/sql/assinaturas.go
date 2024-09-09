@@ -31,11 +31,28 @@ type Pagamento struct {
 	SqPlanoPrevidencial string    `json:"SQ_PLANO_PREVIDENCIAL"`
 }
 
-func (conn *DbConn) GetAssinaturas() ([]Assinatura, error) {
+func (conn *DbConn) GetAssinaturas(filter string, filterValue string) ([]Assinatura, error) {
 	assinatura := Assinatura{}
 	assinaturas := []Assinatura{}
 
-	rows, err := conn.Query("SELECT * FROM WEB_ASSINAT_CRED ORDER BY NR_CPF, COD_PLANO_ASSINAT, COD_ID_ASSINAT")
+	tsql := "SELECT * FROM WEB_ASSINAT_CRED %s ORDER BY NR_CPF, COD_PLANO_ASSINAT, COD_ID_ASSINAT"
+	if filter != "nao" {
+		if filter == "cpf" {
+			tsql = fmt.Sprintf(tsql, "WHERE NR_CPF='"+filterValue+"'")
+		} else if filter == "plano" {
+			tsql = fmt.Sprintf(tsql, "WHERE COD_PLANO_ASSINAT='"+filterValue+"'")
+		} else if filter == "assinatura" {
+			tsql = fmt.Sprintf(tsql, "WHERE COD_ID_ASSINAT='"+filterValue+"'")
+		} else if filter == "pagamento" {
+			tsql = fmt.Sprintf("SELECT * FROM WEB_ASSINAT_CRED ASSINAT LEFT JOIN WEB_PAG_CRED PAG ON PAG.OID_ASSINAT_CRED = ASSINAT.OID_ASSINAT_CRED WHERE PAG.COD_ID_PAGAMENTO = '%s' ORDER BY NR_CPF, COD_PLANO_ASSINAT, COD_ID_ASSINAT", filterValue)
+		}
+	} else {
+		tsql = fmt.Sprintf(tsql, "")
+	}
+
+	fmt.Println(tsql)
+
+	rows, err := conn.Query(tsql)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +79,7 @@ func (conn *DbConn) GetAssinaturas() ([]Assinatura, error) {
 		pagamento := Pagamento{}
 		assinatura.Pagamentos = []Pagamento{}
 
-		tsql := fmt.Sprintf("SELECT * FROM WEB_PAG_CRED WHERE OID_ASSINAT_CRED=@p1")
+		tsql := "SELECT * FROM WEB_PAG_CRED WHERE OID_ASSINAT_CRED=@p1"
 		rowsPag, err := conn.Query(tsql, assinatura.Oid)
 
 		if err != nil {

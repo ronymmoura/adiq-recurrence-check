@@ -23,6 +23,8 @@ func (wb *Workbook) AddAdiqBillings(billings []adiq.Billing) error {
 		{Name: "Assinatura", Width: 40.0},
 		{Name: "Status Assinatura", Width: 15.0},
 		{Name: "Data Criação Assinatura", Width: 20.0},
+		{Name: "ID Pagamento", Width: 40.0},
+		{Name: "Tid", Width: 40.0},
 		{Name: "Valor", Width: 10.0},
 		{Name: "Data Transação", Width: 20.0},
 		{Name: "Data Modificação", Width: 20.0},
@@ -91,6 +93,12 @@ func (wb *Workbook) AddAdiqBillings(billings []adiq.Billing) error {
 
 		cell = row.AddCell()
 		cell.SetDateTime(billing.Subscription.CreatedDate.Time)
+
+		cell = row.AddCell()
+		cell.SetString(billing.Id)
+
+		cell = row.AddCell()
+		cell.SetString(billing.Tid)
 
 		cell = row.AddCell()
 		cell.SetNumeric(fmt.Sprintf("%.2f", billing.Amount))

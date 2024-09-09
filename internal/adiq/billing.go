@@ -61,15 +61,15 @@ type Plan struct {
 
 const billingUrl = "https://recorrencia.adiq.io/v1/recurrence/billing?limit=50"
 
-func GetBilling(accessToken string) (result []Billing, err error) {
+func GetBilling(accessToken string, filter string, filterValue string) ([]Billing, error) {
+	var result []Billing
+
 	billings, err := getBillings(accessToken, 1)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	totalPages := int(math.Ceil(float64(billings.Total) / float64(billings.Limit)))
-
-	//fmt.Printf("\nTotal items: %d\nLimit: %d\nTotal Pages: %d\n\n", billings.Total, billings.Limit, totalPages)
 
 	result = billings.Items
 
@@ -85,7 +85,25 @@ func GetBilling(accessToken string) (result []Billing, err error) {
 		page++
 	}
 
-	return
+	if filter != "nao" {
+		filteredBillings := []Billing{}
+
+		for _, billing := range result {
+			nomePlano := billing.Subscription.Plan.Name
+			cpf := nomePlano[len(nomePlano)-11:]
+
+			if filter == "cpf" && filterValue == cpf ||
+				filter == "plano" && filterValue == billing.Subscription.Plan.Id ||
+				filter == "assinatura" && filterValue == billing.Subscription.Id ||
+				filter == "pagamento" && filterValue == billing.Id {
+				filteredBillings = append(filteredBillings, billing)
+			}
+		}
+
+		return filteredBillings, nil
+	}
+
+	return result, nil
 }
 
 func getBillings(accessToken string, page int) (billings GetBillingResponse, err error) {
