@@ -50,8 +50,6 @@ func (conn *DbConn) GetAssinaturas(filter string, filterValue string) ([]Assinat
 		tsql = fmt.Sprintf(tsql, "")
 	}
 
-	fmt.Println(tsql)
-
 	rows, err := conn.Query(tsql)
 	if err != nil {
 		return nil, err

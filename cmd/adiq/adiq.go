@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/charmbracelet/huh"
@@ -11,6 +12,7 @@ import (
 )
 
 var (
+	op          string = "nao"
 	filter      string
 	filterValue string
 )
@@ -30,15 +32,12 @@ func Run() {
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
-				Title("Deseja filtrar os resultados?").
+				Title("Selecione uma operação:").
 				Options(
-					huh.NewOption("Não", "nao"),
-					huh.NewOption("Por CPF", "cpf"),
-					huh.NewOption("Por Plano", "plano"),
-					huh.NewOption("Por Assinatura", "assinatura"),
-					huh.NewOption("Por Pagamento", "pagamento"),
+					huh.NewOption("Cruzar dados", "cruzar"),
+					huh.NewOption("Corrigir CPF Assinaturas", "corrCpfAss"),
 				).
-				Value(&filter),
+				Value(&op),
 		),
 	)
 
@@ -47,18 +46,44 @@ func Run() {
 		log.Fatal(err)
 	}
 
-	if filter != "nao" {
-		form2 := huh.NewForm(
+	if op == "corrCpfAss" {
+		filter = "nao"
+	}
+
+	if op == "cruzar" {
+		form = huh.NewForm(
 			huh.NewGroup(
-				huh.NewInput().
-					Title("Filtro").
-					Value(&filterValue),
+				huh.NewSelect[string]().
+					Title("Deseja filtrar os resultados?").
+					Options(
+						huh.NewOption("Não", "nao"),
+						huh.NewOption("Por CPF", "cpf"),
+						huh.NewOption("Por Plano", "plano"),
+						huh.NewOption("Por Assinatura", "assinatura"),
+						huh.NewOption("Por Pagamento", "pagamento"),
+					).
+					Value(&filter),
 			),
 		)
 
-		err = form2.Run()
+		err = form.Run()
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		if filter != "nao" {
+			form = huh.NewForm(
+				huh.NewGroup(
+					huh.NewInput().
+						Title("Filtro").
+						Value(&filterValue),
+				),
+			)
+
+			err = form.Run()
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 
@@ -77,9 +102,46 @@ func Run() {
 		log.Fatal("Error getting subscriptions:", err)
 	}
 
-	wb := xlsx.CreateFile()
-	wb.AddAdiqBillings(billings)
-	wb.AddAssinaturas(assinaturas)
-	wb.Cross(billings, assinaturas)
-	wb.SaveFile("adiq.xlsx")
+	if op == "cruzar" {
+		wb := xlsx.CreateFile()
+		wb.AddAdiqBillings(billings)
+		wb.AddAssinaturas(assinaturas)
+		wb.Cross(billings, assinaturas)
+		wb.SaveFile("adiq.xlsx")
+	}
+
+	if op == "corrCpfAss" {
+		count := 0
+		fixed := 0
+
+		for _, assinatura := range assinaturas {
+			if assinatura.Status == "AGU" {
+
+				plan, err := adiq.GetPlan(accessToken, assinatura.IdPlano)
+				if err != nil {
+					log.Fatal("Error getting plan:", err)
+				}
+
+				nomePlano := plan.Name
+				cpf := nomePlano[len(nomePlano)-11:]
+
+				if cpf != assinatura.CPF {
+					fmt.Printf("CPF API: %s\nCPF DB : %s\n", cpf, assinatura.CPF)
+					fmt.Printf("Plano API: %s\nPlano DB : %s\n\n", plan.Id, assinatura.IdPlano)
+
+					count++
+
+					rows, err := db.UpdateAssinatura(plan.Id, cpf)
+					if err != nil {
+						log.Fatal("Error updating plan:", err)
+					}
+
+					fixed += int(rows)
+				}
+			}
+		}
+
+		fmt.Printf("%d inconsistências encontradas\n", count)
+		fmt.Printf("%d inconsistências corrigidas\n", fixed)
+	}
 }
