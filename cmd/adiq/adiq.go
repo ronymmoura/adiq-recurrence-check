@@ -102,11 +102,23 @@ func Run() {
 		log.Fatal("Error getting subscriptions:", err)
 	}
 
+	fichaCobranca, err := db.GetFichaCobranca()
+	if err != nil {
+		log.Fatal("Error getting fi_ficha_cobranca:", err)
+	}
+
+	fichaFinanc, err := db.GetFichaFinanc()
+	if err != nil {
+		log.Fatal("Error getting fi_ficha_contrib_previdencial:", err)
+	}
+
 	if op == "cruzar" {
 		wb := xlsx.CreateFile()
 		wb.AddAdiqBillings(billings)
 		wb.AddAssinaturas(assinaturas)
 		wb.Cross(billings, assinaturas)
+		wb.AddFichaCobranca(fichaCobranca)
+		wb.AddFichaContrib(fichaFinanc)
 		wb.SaveFile("adiq.xlsx")
 	}
 
