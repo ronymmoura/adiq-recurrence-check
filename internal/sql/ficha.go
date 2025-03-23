@@ -33,7 +33,7 @@ type FichaFinanceira struct {
 func (fc FichaCobranca) Exists(list []FichaCobranca) bool {
 	for _, x := range list {
 		if x.CPF == fc.CPF &&
-			x.DtCompetencia == fc.DtCompetencia &&
+			x.DtReferencia == fc.DtReferencia &&
 			x.VlCobranca == fc.VlCobranca &&
 			x.SqCobranca != fc.SqCobranca {
 			return true
@@ -46,7 +46,7 @@ func (fc FichaCobranca) Exists(list []FichaCobranca) bool {
 func (fc FichaFinanceira) Exists(list []FichaFinanceira) bool {
 	for _, x := range list {
 		if x.CPF == fc.CPF &&
-			x.DtCompetencia == fc.DtCompetencia &&
+			x.DtReferencia == fc.DtReferencia &&
 			x.VlContribuicao == fc.VlContribuicao &&
 			x.SqTipoCobranca == fc.SqTipoCobranca &&
 			x.SqFicha != fc.SqFicha {
@@ -77,6 +77,7 @@ LEFT JOIN fi_pessoa_fisica pf on pf.cd_pessoa = fc.cd_pessoa
 LEFT JOIN fi_pessoa pe on pe.cd_pessoa = pf.cd_pessoa
 WHERE SQ_TIPO_COBRANCA IN (3, 1)
   AND SQ_LOCAL_COBRANCA = 6
+	AND DT_COMPETENCIA >= '2024-06-01'
 ORDER BY nr_cpf, DT_REGISTRO DESC`
 
 	rows, err := conn.Query(query)
@@ -113,6 +114,24 @@ ORDER BY nr_cpf, DT_REGISTRO DESC`
 	return ficha, nil
 }
 
+func (conn *DbConn) DeleteCobranca(sq_cobranca int) error {
+	query := `DELETE FROM fi_ficha_financ_cobranca WHERE sq_cobranca = $1`
+	if _, err := conn.Exec(query, sq_cobranca); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (conn *DbConn) UpdateTipoCobranca(sq_cobranca int) error {
+	query := `UPDATE fi_ficha_cobranca SET sq_tipo_cobranca = 3 WHERE sq_cobranca = $1`
+	if _, err := conn.Exec(query, sq_cobranca); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (conn *DbConn) GetFichaFinanc() ([]FichaFinanceira, error) {
 	query := `
 SELECT
@@ -132,6 +151,7 @@ LEFT JOIN fi_pessoa_fisica pf on pf.cd_pessoa = ct.cd_pessoa
 LEFT JOIN fi_pessoa pe on pe.cd_pessoa = pf.cd_pessoa
 WHERE SQ_TIPO_COBRANCA IN (3, 1)
   AND NR_CPF IS NOT NULL
+	AND DT_COMPETENCIA >= '2024-06-01'
 ORDER BY nr_cpf, DT_APORTE DESC`
 
 	rows, err := conn.Query(query)
@@ -164,4 +184,13 @@ ORDER BY nr_cpf, DT_APORTE DESC`
 	}
 
 	return ficha, nil
+}
+
+func (conn *DbConn) DeleteFicha(sq_ficha int) error {
+	query := `DELETE FROM fi_ficha_contrib_previdencial WHERE sq_ficha = $1`
+	if _, err := conn.Exec(query, sq_ficha); err != nil {
+		return err
+	}
+
+	return nil
 }

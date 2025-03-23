@@ -5,8 +5,14 @@ import (
 	"github.com/tealeg/xlsx/v3"
 )
 
-func (wb *Workbook) AddFichaContrib(ficha []sql.FichaFinanceira) error {
-	sheetName := "Ficha Financeira"
+func (wb *Workbook) AddFichaContrib(ficha []sql.FichaFinanceira, correcao bool) error {
+	var sheetName string
+	if correcao {
+		sheetName = "Ficha Financeira Correção"
+	} else {
+		sheetName = "Ficha Financeira"
+	}
+
 	sh, err := wb.AddSheet(sheetName)
 	if err != nil {
 		return err

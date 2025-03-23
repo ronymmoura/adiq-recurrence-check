@@ -5,14 +5,21 @@ import (
 	"github.com/tealeg/xlsx/v3"
 )
 
-func (wb *Workbook) AddFichaCobranca(ficha []sql.FichaCobranca) error {
-	sheetName := "Ficha Cobrança"
+func (wb *Workbook) AddFichaCobranca(ficha []sql.FichaCobranca, correcao bool) error {
+	var sheetName string
+	if correcao {
+		sheetName = "Ficha Cobrança Correção"
+	} else {
+		sheetName = "Ficha Cobrança"
+	}
+
 	sh, err := wb.AddSheet(sheetName)
 	if err != nil {
 		return err
 	}
 
 	headers := []ColHeader{
+		{Name: "SqCobranca", Width: 15.0},
 		{Name: "Status", Width: 15.0},
 		{Name: "Nome", Width: 30.0},
 		{Name: "CPF", Width: 15.0},
@@ -58,7 +65,10 @@ func (wb *Workbook) AddFichaCobranca(ficha []sql.FichaCobranca) error {
 		var style *xlsx.Style
 
 		cell := row.AddCell()
+		cell.SetStyle(style)
+		cell.SetInt(item.SqCobranca)
 
+		cell = row.AddCell()
 		if item.Exists(ficha) {
 			style = duplicatedStyles
 			cell.SetString("Duplicado")

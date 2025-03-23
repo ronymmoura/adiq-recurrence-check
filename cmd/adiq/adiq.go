@@ -36,6 +36,7 @@ func Run() {
 				Options(
 					huh.NewOption("Cruzar dados", "cruzar"),
 					huh.NewOption("Corrigir CPF Assinaturas", "corrCpfAss"),
+					huh.NewOption("Corrigir lançamentos", "corrLanc"),
 				).
 				Value(&op),
 		),
@@ -46,7 +47,7 @@ func Run() {
 		log.Fatal(err)
 	}
 
-	if op == "corrCpfAss" {
+	if op == "corrCpfAss" || op == "corrLanc" {
 		filter = "nao"
 	}
 
@@ -87,6 +88,8 @@ func Run() {
 		}
 	}
 
+	corrLanc := op == "corrLanc"
+
 	billings, err := adiq.GetBilling(accessToken, filter, filterValue)
 	if err != nil {
 		log.Fatal("Cannot get billings:", err)
@@ -107,9 +110,31 @@ func Run() {
 		log.Fatal("Error getting fi_ficha_cobranca:", err)
 	}
 
+	cobrancaCorrigida := []sql.FichaCobranca{}
+	for idx, ficha := range fichaCobranca {
+		if corrLanc {
+			if ficha.Exists(fichaCobranca) {
+				db.DeleteCobranca(ficha.SqCobranca)
+				fichaCobranca = append(fichaCobranca[:idx], fichaCobranca[idx+1:]...)
+				cobrancaCorrigida = append(cobrancaCorrigida, ficha)
+			}
+		} else if ficha.SqTipoCobranca == 1 {
+			db.UpdateTipoCobranca(ficha.SqCobranca)
+		}
+	}
+
 	fichaFinanc, err := db.GetFichaFinanc()
 	if err != nil {
 		log.Fatal("Error getting fi_ficha_contrib_previdencial:", err)
+	}
+
+	fichaFinancCorrigida := []sql.FichaFinanceira{}
+	for idx, ficha := range fichaFinanc {
+		if corrLanc && ficha.Exists(fichaFinanc) {
+			db.DeleteFicha(ficha.SqFicha)
+			fichaFinanc = append(fichaFinanc[:idx], fichaFinanc[idx+1:]...)
+			fichaFinancCorrigida = append(fichaFinancCorrigida, ficha)
+		}
 	}
 
 	if op == "cruzar" {
@@ -117,8 +142,17 @@ func Run() {
 		wb.AddAdiqBillings(billings)
 		wb.AddAssinaturas(assinaturas)
 		wb.Cross(billings, assinaturas)
-		wb.AddFichaCobranca(fichaCobranca)
-		wb.AddFichaContrib(fichaFinanc)
+		wb.AddFichaCobranca(fichaCobranca, false)
+		wb.AddFichaContrib(fichaFinanc, false)
+		wb.SaveFile("adiq.xlsx")
+	}
+
+	if corrLanc {
+		wb := xlsx.CreateFile()
+		wb.AddFichaCobranca(fichaCobranca, false)
+		wb.AddFichaCobranca(cobrancaCorrigida, true)
+		wb.AddFichaContrib(fichaFinanc, false)
+		wb.AddFichaContrib(fichaFinancCorrigida, true)
 		wb.SaveFile("adiq.xlsx")
 	}
 
